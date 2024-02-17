@@ -36,12 +36,6 @@ const start=(serviceName:string)=>{
     // OpenTelemetry Tracing Configuration 
     const traceExporter= new OTLPTraceExporter({
         url:"http://jaeger:4318/v1/traces",
-        headers: {
-            "x-scope-orgid": "1",
-            "x-scope-spaceid": "1",
-            "x-scope-env": "development",
-            "x-scope-service": "my-service"
-        }
     })
 
 
