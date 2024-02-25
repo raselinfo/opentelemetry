@@ -1,5 +1,5 @@
 import start from "./tracer";
-const meter = start("todo-service");
+const meter = start("todo-service 🥰");
 
 import opentelemetry from "@opentelemetry/api";
 
@@ -35,48 +35,62 @@ const sleep = (time: number) => {
   });
 };
 
-app.get("/todos", async (req, res) => {
-  const user = await axios.get("http://auth:8080/auth");
+app.get("/todos", (req, res) => {
+  // Create Context Propagation
+  const baggages = opentelemetry.propagation.createBaggage({
+    "user.plan": {
+      value: "enterprise",
+    },
+  });
 
-  const todoKeys = await redis.keys("todo:*");
+  const contextWithBaggage = opentelemetry.propagation.setBaggage(
+    opentelemetry.context.active(),
+    baggages
+  );
+// Wrap the entire request in a context that includes the baggage.
+  opentelemetry.context.with(contextWithBaggage, async () => {
+    const user = await axios.get("http://auth:8080/auth");
 
-  const todos: any = [];
+    const todoKeys = await redis.keys("todo:*");
 
-  for (let i = 0; i < todoKeys.length; i++) {
-    const todoItem = await redis.get(todoKeys[i]);
-    if (todoItem) {
-      todos.push(JSON.parse(todoItem));
+    const todos: any = [];
+
+    for (let i = 0; i < todoKeys.length; i++) {
+      const todoItem = await redis.get(todoKeys[i]);
+      if (todoItem) {
+        todos.push(JSON.parse(todoItem));
+      }
     }
-  }
 
-  // This code will add a delay to the response if the query parameter "slow" is present.
-  if (req.query["slow"]) {
-    await sleep(1000);
-  }
-
-  // This code will throw an error if the query parameter "fail" is present.
-  if (req.query["fail"]) {
-    try {
-      throw new Error("Really bad error!");
-    } catch (e: any) {
-      const activeSpan = api.trace.getSpan(api.context.active());
-      
-      console.error("😢😢😢😢 todo-service", activeSpan);
-
-      // This code will record the error in the active span and log the error message and trace context.
-      activeSpan?.recordException(e);
-      console.error("Really bad error!", {
-        spanId: activeSpan?.spanContext().spanId,
-        traceId: activeSpan?.spanContext().traceId,
-        traceFlag: activeSpan?.spanContext().traceFlags,
-      });
-
-      res.sendStatus(500);
-      return;
+    // This code will add a delay to the response if the query parameter "slow" is present.
+    if (req.query["slow"]) {
+      await sleep(1000);
     }
-  }
 
-  res.json({ todos, user: user.data });
+    // This code will throw an error if the query parameter "fail" is present.
+    if (req.query["fail"]) {
+      try {
+        throw new Error("Really bad error!");
+      } catch (e: any) {
+        const activeSpan = api.trace.getSpan(api.context.active());
+
+        console.error("😢😢😢😢 todo-service", activeSpan);
+
+        // This code will record the error in the active span and log the error message and trace context.
+        activeSpan?.recordException(e);
+        console.error("Really bad error!", {
+          spanId: activeSpan?.spanContext().spanId,
+          traceId: activeSpan?.spanContext().traceId,
+          traceFlag: activeSpan?.spanContext().traceFlags,
+        });
+
+        res.sendStatus(500);
+        return;
+      }
+    }
+
+    res.json({ todos, user: user.data });
+  });
 });
 
 app.listen(8080, () => {
@@ -96,6 +110,11 @@ async function init() {
   opentelemetry.trace
     .getTracer("init")
     .startActiveSpan("Set default items", async (span) => {
+      //  you can add custom attributes to the "Set default items" span
+      span.setAttribute("name", "Rasel");
+      span.setAttribute("todo-service.init", "true");
+
+      console.log(span);
       // This code will set default todo items in Redis using the Redis client instance.
       await Promise.all([
         redis.set(
@@ -116,7 +135,6 @@ async function init() {
         ),
       ]);
 
-      // This code will end the active span.
       span.end();
     });
 }

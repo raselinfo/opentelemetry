@@ -1,26 +1,33 @@
-version: '3.8'
+version: "3.8"
 
 services:
   todo:
-    build: 
+    build:
       context: .
       dockerfile: dockerfile.todo-service
     volumes:
       - .:/usr/src/app:rw
     ports:
       - 8081:8080
+    environment:
+      - OTEL_LOG_LEVEL=DEBUG
+      - NODE_ENV=production
+
   auth:
-    build: 
+    build:
       context: .
       dockerfile: dockerfile.auth-service
     volumes:
       - .:/usr/src/app:rw
     ports:
       - 8080:8080
+    environment:
+      - OTEL_LOG_LEVEL=ERROR
+      - NODE_ENV=development
   redis:
     image: redis:latest
     ports:
-      - '6379:6379'
+      - "6379:6379"
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -33,7 +40,7 @@ services:
   prometheus:
     image: prom/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
+      - "--config.file=/etc/prometheus/prometheus.yml"
     volumes:
       - ./prometheus/:/etc/prometheus/
     ports:
