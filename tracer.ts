@@ -13,9 +13,10 @@ const start=(serviceName:string)=>{
 
     // OpenTelemetry Metrics Configuration With Prometheus Exporter
     const { endpoint, port } = PrometheusExporter.DEFAULT_OPTIONS;
-    console.log("Prometheus Exporter 😊😊😊😊😊", endpoint, port)
+    console.log(" 😊😊😊😊😊 Prometheus Exporter", endpoint, port)
     const exporter = new PrometheusExporter({
         // endpoint: "http://localhost:9464/metrics"
+        
     }, () => {
         console.log(
           `prometheus scrape endpoint: http://localhost:${port}${endpoint}`,
